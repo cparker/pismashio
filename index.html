@@ -1,0 +1,333 @@
+<html>
+
+<head>
+    <title>SMASH!</title>
+</head>
+
+<style>
+    body {
+        overflow: hidden;
+    }
+    
+    .smash-thing {
+        max-width: 50px;
+        position: absolute;
+        transition-property: top, left, transform;
+        transition-duration: 0.5s, 0.5s, 0.5s;
+        transition-timing-function: cubic-bezier(0.19, 0.71, 0.74, 0.27);
+    }
+    
+    .hammer {
+        z-index: 10;
+        width: 200px;
+        position: absolute;
+        transition: transform 0.10s;
+        transition-timing-function: cubic-bezier(0, 2.21, 0.42, 1.24);
+        transform-origin: bottom right;
+        /*border:1px solid orange;*/
+    }
+    
+    .other-player {
+        opacity: 0.5;
+    }
+    
+    .smash {
+        transform: rotate(-20deg);
+    }
+    
+    .score {
+        color: lightgreen;
+        font-size: 3.0em;
+        position: absolute;
+        /*border:1px solid blue;*/
+        transform: translateX(140px) translateY(-139px);
+    }
+    /* for the input field */
+    
+    #name {
+        font-size: 3.0em;
+        margin: auto;
+        display: none;
+        background-color: lightblue;
+        z-index: 1000;
+        border: 5px solid lightgray;
+        transform: translateY(50%);
+    }
+    /* to show the name */
+    
+    .name-display {
+        font-size: 2.0em;
+        color: red;
+        position: absolute;
+        transform: translateX(-14px) translateY(-174px);
+    }
+</style>
+
+<body>
+
+    <input id="name" type="text" placeholder="name" />
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+        let playerId
+        let playerName
+        let ourHammerElement, ourScoreElement, ourNameElement
+        const socket = io.connect('http://localhost:5000')
+        const smashyWidthPx = 50
+        const smashDurationMs = 150
+
+        let level = 0
+        let smashedCount = 0
+        let totalSmashies = 5
+
+        const images = [
+            "http://www.keenanpistachio.com/wp-content/uploads/2015/01/pistachio-1.png",
+            "http://gnomemiracle.com/wp-content/uploads/2015/04/Door-Greeter-Whistling-Gnome-2.png",
+            "http://vignette4.wikia.nocookie.net/sugoiacademy/images/9/9a/Tumblr_static_8a4ufs1f04kk4848k4w0gww8w.png/revision/latest?cb=20151211215132",
+            "/sandwich.png",
+            "/chucks.png",
+            "/guitar.png",
+            "/donut.gif",
+            "/coke.png"
+        ]
+
+        const hammerImages = [
+            '/tackHammer.png',
+            '/carpenter.png',
+            '/small-sledge.png'
+        ]
+
+        let getHammerImageURL = (score) => {
+            if (score < 50) {
+                return hammerImages[0]
+            } else if (score < 100) {
+                return hammerImages[1]
+            } else {
+                return hammerImages[2]
+            }
+        }
+
+
+        // handler for making some pieces move around the board
+        socket.on('boardMoveItems', gameBoard => {
+            console.log('boardMoveItems')
+            gameBoard.boardPieces.forEach(piece => {
+                const pieceElement = document.querySelector(`#${piece.id}.smash-thing`)
+                pieceElement.style.top = `${piece.y}px`;
+                pieceElement.style.left = `${piece.x}px`;
+                pieceElement.style.transform = `rotate(${piece.rotate}deg)`
+            })
+        })
+
+        socket.on('playersUpdate', players => {
+            console.log('players', players)
+
+            const otherPlayers = players.filter(p => p.playerId != playerId)
+
+            otherPlayers.forEach(otherPlayer => {
+
+                // add another hammer image to the dom, IF its not there already
+                if (!document.querySelector(`#hammer-${otherPlayer.playerId}`)) {
+                    const newHammer = document.createElement('img')
+
+                    const hammerImageUrl = getHammerImageURL(otherPlayer.score)
+
+                    newHammer.src = hammerImageUrl
+                    newHammer.classList.add("hammer")
+                    newHammer.classList.add('other-player')
+                    newHammer.setAttribute('id', `hammer-${otherPlayer.playerId}`)
+
+                    const newScore = document.createElement('div')
+                    newScore.classList.add('score')
+                    newScore.innerHTML = `${otherPlayer.score}`
+                    newScore.setAttribute('id', `score-${otherPlayer.playerId}`)
+
+                    const newName = document.createElement('div')
+                    newName.classList.add('name-display')
+                    newName.innerHTML = `${otherPlayer.name || ''}`
+                    newName.setAttribute('id', `name-${otherPlayer.playerId}`)
+
+                    const body = document.querySelector('body')
+                    body.appendChild(newHammer)
+                    body.appendChild(newScore)
+                    body.appendChild(newName)
+                } else {
+                    console.log(`we already have a hammer for ${otherPlayer.playerId}`)
+                    const existingHammerElm = document.querySelector(`#hammer-${otherPlayer.playerId}`)
+                    existingHammerElm.src = getHammerImageURL(otherPlayer.score)
+                    
+                    const existingNameElm = document.querySelector(`#name-${otherPlayer.playerId}`)
+                    existingNameElm.innerHTML = otherPlayer.name || ''
+                }
+
+                document.querySelector(`#score-${otherPlayer.playerId}`).innerHTML = otherPlayer.score
+            })
+
+            // ME
+            const me = players.find(p => p.playerId === playerId)
+            document.querySelector(`#score-${me.playerId}`).innerHTML = me.score
+            document.querySelector(`#name-${me.playerId}`).innerHTML = me.name || ''
+            document.querySelector(`#hammer-${me.playerId}`).src = getHammerImageURL(me.score)
+        })
+
+        socket.on('playerPositionUpdate', data => {
+            const otherH = document.querySelector(`#hammer-${data.playerId}`)
+            otherH.style.top = `${data.y-140}px`
+            otherH.style.left = `${data.x-10}px`
+
+            const otherScore = document.querySelector(`#score-${data.playerId}`)
+            otherScore.style.top = `${data.y}px`
+            otherScore.style.left = `${data.x}px`
+
+            const otherName = document.querySelector(`#name-${data.playerId}`)
+            otherName.style.top = `${data.y}px`
+            otherName.style.left = `${data.x}px`
+        })
+
+        socket.on('connect', data => {
+            console.log('connected', data)
+            socket.emit('join', {
+                playerId: playerId
+            })
+        })
+
+        socket.on('registrationResponse', data => {
+            console.log('registrationResponse', data)
+            playerId = data.playerId
+            playerName = data.playerName
+            ourHammerElement = document.createElement('img')
+            const hammerImageURL = getHammerImageURL(data.score)
+            ourHammerElement.src = hammerImageURL
+            ourHammerElement.classList.add("hammer")
+            ourHammerElement.setAttribute('id', `hammer-${playerId}`)
+
+            ourScoreElement = document.createElement('div')
+            ourScoreElement.classList.add('score')
+            ourScoreElement.innerHTML = `${data.score}`
+            ourScoreElement.setAttribute('id', `score-${playerId}`)
+
+            ourNameElement = document.createElement('div')
+            ourNameElement.classList.add('name-display')
+            ourNameElement.setAttribute('id', `name-${playerId}`)
+
+            const body = document.querySelector('body')
+            body.appendChild(ourHammerElement)
+            body.appendChild(ourScoreElement)
+            body.appendChild(ourNameElement)
+        })
+
+        socket.on('gameBoard', handleBoardUpdate)
+
+        socket.on('playerSmash', handlePlayerSmash)
+
+
+        const smashImg = "https://www.clipartsgram.com/image/1251806326-pow-hi.png"
+
+        const bodyElm = document.querySelector('body')
+
+
+        function handleBoardUpdate(board) {
+            // first, clear out any pieces we may have already
+            Array.from(document.querySelectorAll('.smash-thing')).forEach(e => e.remove())
+            board.boardPieces.forEach(b => {
+                const newSmashy = document.createElement('img')
+                newSmashy.classList.add('smash-thing')
+                newSmashy.style.left = `${b.x}px`
+                newSmashy.style.top = `${b.y}px`
+                newSmashy.src = images[board.level]
+                newSmashy.setAttribute('id', `${b.id}`)
+
+                newSmashy.style.transform = `rotate(${b.rotate}deg)`
+
+                bodyElm.appendChild(newSmashy)
+            })
+
+        }
+
+        function handlePlayerSmash(playerId) {
+            console.log(`player ${playerId} is smashing`)
+            const otherH = document.querySelector(`#hammer-${playerId}`)
+            otherH.classList.add('smash')
+            setTimeout(() => {
+                otherH.classList.remove('smash')
+            }, smashDurationMs)
+        }
+
+        function handlePosition(p) {
+            ourHammerElement.style.top = `${p.y-140}px`
+            ourHammerElement.style.left = `${p.x-10}px`
+
+            ourScoreElement.style.top = `${p.y}px`
+            ourScoreElement.style.left = `${p.x}px`
+
+            ourNameElement.style.top = `${p.y}px`
+            ourNameElement.style.left = `${p.x}px`
+
+            socket.emit('playerPosition', {
+                playerId: playerId,
+                x: p.x,
+                y: p.y
+            })
+        }
+
+        function handleDown(p) {
+            p.stopPropagation()
+            p.preventDefault()
+            ourHammerElement.classList.add('smash')
+
+            setTimeout(() => {
+                ourHammerElement.classList.remove('smash')
+            }, smashDurationMs)
+
+            socket.emit('playerSmash', playerId)
+
+            let allSmashItems = Array.from(document.querySelectorAll('.smash-thing'))
+            allSmashItems.forEach(item => {
+                let itemRect = item.getBoundingClientRect()
+                if (p.x >= itemRect.left && p.x <= itemRect.right && p.y >= itemRect.top && p.y <= itemRect.bottom) {
+                    console.log('BAM')
+                    socket.emit('hitItem', item.getAttribute('id'))
+                    item.src = smashImg
+                    smashedCount += 1
+                    setTimeout(() => {
+                        bodyElm.removeChild(item)
+                    }, 2000)
+                }
+            })
+            return false
+        }
+
+        function handleUp() {
+            //nothing to do here
+            //ourHammerElement.classList.remove('smash')
+        }
+
+        function handleKey(key) {
+            console.log('key', key)
+            if (key.key === '1') {
+                key.stopPropagation()
+                key.preventDefault()
+                let i = document.querySelector('#name')
+                i.style.display = 'block'
+                i.focus()
+            }
+
+            if (key.key === 'Enter') {
+                let i = document.querySelector('#name')
+                playerName = i.value
+                document.querySelector('.name-display').innerHTML = i.value
+                socket.emit('setPlayerName', i.value)
+                document.querySelector('#name').style.display = 'none'
+            }
+            return false
+        }
+
+        window.addEventListener('mousemove', handlePosition)
+        window.addEventListener('mousedown', handleDown)
+        window.addEventListener('mouseup', handleUp)
+        window.addEventListener('keydown', handleKey)
+    </script>
+</body>
+
+</html>
