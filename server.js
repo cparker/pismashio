@@ -174,15 +174,18 @@ let moveSomeItems = (width, height, maxItemsToMove) => {
 io.on('connection', client => {
     console.log('HEADERS', client.handshake.headers)
     const playerSmashID = getSmashID(client.handshake.headers.cookie)
-    
+
     if (!playerSmashID) {
-      console.log('could not get a playerSmashID?')
-      return
+        console.log('could not get a playerSmashID?')
+        return
     }
+
 
     client.on('hitItem', handleHitItem(client, playerSmashID))
 
+
     client.on('playerSmash', handlePlayerSmash(client, playerSmashID))
+
 
     client.on('join', data => {
         console.log(`player has joined, and their pismashioID is ${playerSmashID}`)
@@ -235,6 +238,7 @@ io.on('connection', client => {
         client.broadcast.emit('playerPositionUpdate', data)
     })
 
+
     client.on('setPlayerName', name => {
         console.log(`setting player ${playerSmashID} name to ${name}`)
         players = players.map(p => {
@@ -246,6 +250,15 @@ io.on('connection', client => {
 
         client.broadcast.emit('playersUpdate', players)
         client.emit('playersUpdate', players)
+    })
+
+
+    client.on('playerChat', chatMessage => {
+        // add playerName, then reflect
+        const foundPlayer = players.find(p => p.playerId === chatMessage.playerId)
+        chatMessage.name = foundPlayer.name
+        client.broadcast.emit('playerChat', chatMessage)
+        client.emit('playerChat', chatMessage)
     })
 })
 

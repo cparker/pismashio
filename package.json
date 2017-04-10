@@ -1,15 +1,14 @@
 {
   "name": "pismashio",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "version": "0.1.0",
+  "description": "Smash all the things!  Simple little game built with pure javascript ES6",
+  "main": "server.js",
+  "scripts": {},
+  "author": "cp@cjparker.us",
+  "license": "MIT",
   "dependencies": {
     "body-parser": "^1.17.1",
+    "cookie-parser": "^1.4.3",
     "express": "^4.15.2",
     "socket.io": "^1.7.3"
   }

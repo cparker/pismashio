@@ -1,0 +1,89 @@
+  body {
+      overflow: hidden;
+  }
+  
+  .smash-thing {
+      max-width: 50px;
+      position: absolute;
+      transition-property: top, left, transform;
+      transition-duration: 0.5s, 0.5s, 0.5s;
+      transition-timing-function: cubic-bezier(0.19, 0.71, 0.74, 0.27);
+      z-index: 0;
+  }
+  
+  .hammer {
+      z-index: 10;
+      width: 200px;
+      position: absolute;
+      transition: transform 0.10s;
+      transition-timing-function: cubic-bezier(0, 2.21, 0.42, 1.24);
+      transform-origin: bottom right;
+      /*border:1px solid orange;*/
+  }
+  
+  .other-player {
+      opacity: 0.5;
+  }
+  
+  .smash {
+      transform: rotate(-20deg);
+  }
+  
+  .score {
+      color: lightgreen;
+      font-size: 3.0em;
+      position: absolute;
+      /*border:1px solid blue;*/
+      transform: translateX(140px) translateY(-139px);
+  }
+  /* for the input field */
+  
+  #name {
+      position: absolute;
+      font-size: 3.0em;
+      display: none;
+      background-color: lightblue;
+      z-index: 1000;
+      border: 5px solid lightgray;
+      transform: translateY(50%);
+      transform: translateX(50%);
+  }
+  /* to show the name */
+  
+  .name-display {
+      font-size: 2.0em;
+      color: red;
+      position: absolute;
+      transform: translateX(-14px) translateY(-174px);
+  }
+  
+  .chat {
+      position: static;
+      float: right;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 25%;
+      border: 1px solid blue;
+      background-color: gray;
+      opacity: 0.0;
+      padding: 0.7em;
+      justify-content: flex-end;
+      transition: opacity 0.3s;
+      z-index: 1000;
+  }
+  
+  .chat .chat-entry {
+      font-size: 1.0em;
+  }
+  
+  .chat textarea {
+      font-size: 1.0em;
+      margin-bottom: 0.2em;
+      margin-top: 0.2em;
+  }
+  
+  .chat-help {
+    font-style: italic;
+    margin-bottom: 1.2em;
+  }

@@ -1,93 +1,10 @@
 <html>
 
 <head>
-    <title>SMASH!</title>
+    <title>pismash.io</title>
+    <link rel='stylesheet' href='/pismashio.css'></link>
 </head>
 
-<style>
-    body {
-        overflow: hidden;
-    }
-    
-    .smash-thing {
-        max-width: 50px;
-        position: absolute;
-        transition-property: top, left, transform;
-        transition-duration: 0.5s, 0.5s, 0.5s;
-        transition-timing-function: cubic-bezier(0.19, 0.71, 0.74, 0.27);
-    }
-    
-    .hammer {
-        z-index: 10;
-        width: 200px;
-        position: absolute;
-        transition: transform 0.10s;
-        transition-timing-function: cubic-bezier(0, 2.21, 0.42, 1.24);
-        transform-origin: bottom right;
-        /*border:1px solid orange;*/
-    }
-    
-    .other-player {
-        opacity: 0.5;
-    }
-    
-    .smash {
-        transform: rotate(-20deg);
-    }
-    
-    .score {
-        color: lightgreen;
-        font-size: 3.0em;
-        position: absolute;
-        /*border:1px solid blue;*/
-        transform: translateX(140px) translateY(-139px);
-    }
-    /* for the input field */
-    
-    #name {
-        position: absolute;
-        font-size: 3.0em;
-        display: none;
-        background-color: lightblue;
-        z-index: 1000;
-        border: 5px solid lightgray;
-        transform: translateY(50%);
-        transform: translateX(50%);
-    }
-    /* to show the name */
-    
-    .name-display {
-        font-size: 2.0em;
-        color: red;
-        position: absolute;
-        transform: translateX(-14px) translateY(-174px);
-    }
-    
-    .chat {
-        position: static;
-        float: right;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        width: 25%;
-        border: 1px solid blue;
-        background-color: gray;
-        opacity: 0.0;
-        padding: 0.7em;
-        justify-content: flex-end;
-        transition: opacity 0.3s;
-    }
-    
-    .chat .chat-entry {
-        font-size: 1.3em;
-    }
-    
-    .chat textarea {
-        font-size: 1.5em;
-        margin-bottom: 1.2em;
-        margin-top: 0.2em;
-    }
-</style>
 
 <body>
 
@@ -100,6 +17,7 @@
         let playerName
         let ourHammerElement, ourScoreElement, ourNameElement
         let enterCallback = () => false // noop
+        let escapeCallback = () => false
         let typingTextMode = false
         let level = 0
         let smashedCount = 0
@@ -107,26 +25,26 @@
         let chatOpen = false
         let nameOpen = false
 
-        const socket = io.connect('http://192.168.1.14:5000')
+        const socket = io.connect(':5000')
         const smashyWidthPx = 50
         const smashDurationMs = 150
 
 
         const images = [
-            "http://www.keenanpistachio.com/wp-content/uploads/2015/01/pistachio-1.png",
+            "/images/pistachio-1.png",
             "http://gnomemiracle.com/wp-content/uploads/2015/04/Door-Greeter-Whistling-Gnome-2.png",
             "http://vignette4.wikia.nocookie.net/sugoiacademy/images/9/9a/Tumblr_static_8a4ufs1f04kk4848k4w0gww8w.png/revision/latest?cb=20151211215132",
-            "/sandwich.png",
-            "/chucks.png",
-            "/guitar.png",
-            "/donut.gif",
-            "/coke.png"
+            "/images/sandwich.png",
+            "/images/chucks.png",
+            "/images/guitar.png",
+            "/images/donut.gif",
+            "/images/coke.png"
         ]
 
         const hammerImages = [
-            '/tackHammer.png',
-            '/carpenter.png',
-            '/small-sledge.png'
+            '/images/tackHammer.png',
+            '/images/carpenter.png',
+            '/images/small-sledge.png'
         ]
 
         let getHammerImageURL = (score) => {
@@ -253,6 +171,9 @@
         socket.on('playerSmash', handlePlayerSmash)
 
 
+        socket.on('playerChat', handlePlayerChat)
+
+
         const smashImg = "https://www.clipartsgram.com/image/1251806326-pow-hi.png"
 
         const bodyElm = document.querySelector('body')
@@ -301,6 +222,18 @@
                 y: p.y
             })
         }
+
+
+        function handlePlayerChat(chatMessage) {
+            // add a message        <div class="chat-entry">POW POW: Amazing!</div>
+            console.log('playerChat', chatMessage)
+            const newMessageElement = document.createElement('div')
+            newMessageElement.classList.add('chat-entry')
+            newMessageElement.innerHTML = `${chatMessage.name || 'anon'}: ${chatMessage.message}`
+            const chatInputElm = document.querySelector('.chat textarea')
+            document.querySelector('.chat').insertBefore(newMessageElement, chatInputElm)
+        }
+
 
         function handleDown(p) {
             p.stopPropagation()
@@ -370,51 +303,68 @@
         }
 
 
-        function enterChat() {
+        function enterChat(keyEvent) {
+            // let's stop the enter event so it doesn't put a newline in the chat box
+            keyEvent.stopPropagation()
+            keyEvent.preventDefault()
+
             let c = document.querySelector('.chat')
             let chatInput = document.querySelector('.chat textarea')
 
             chatInput.value && chatInput.value.length > 0 && socket.emit('playerChat', {
                 playerId: playerId,
-                message: chatInput.value})
-                
-            chatInput.value = ''
+                message: chatInput.value
+            })
 
-            setTimeout(() => {
-                c.style.opacity = '0.0'
-                chatOpen = false
-            }, 3000)
+            chatInput.value = ''
         }
 
 
-        function handleKey(key) {
+        function closeChat(keyEvent) {
+            document.querySelector('.chat').style.opacity = 0.0
+            chatOpen = false
+        }
+
+
+        function handleKey(keyEvent) {
             // if the user is typing their name, or typing a chat message, we don't want to handle keys
             // EXCEPT ENTER
 
             if (typingTextMode) {
-                if (key.key === 'Enter') {
+                if (keyEvent.key === 'Enter') {
                     typingTextMode = false
-                    enterCallback()
+                    enterCallback(keyEvent)
                     enterCallback = () => false
+                }
+
+                if (keyEvent.key === 'Escape') {
+                    typingTextMode = false
+                    escapeCallback(keyEvent)
+                    escapeCallback = () => false
                 }
 
             } else {
 
-                switch (key.key) {
+                switch (keyEvent.key) {
                     case 'n':
                         enterCallback = enterName
-                        showName(key)
+                        showName(keyEvent)
                         typingTextMode = true
                         break
 
                     case 'c':
                         enterCallback = enterChat
-                        showChat(key)
+                        escapeCallback = closeChat
+                        showChat(keyEvent)
                         typingTextMode = true
                         break
 
                     case 'Enter':
-                        enterCallback()
+                        enterCallback(keyEvent)
+                        break
+
+                    case 'Escape':
+                        escapeCallback(keyEvent)
                         break
 
                     default:
@@ -423,9 +373,6 @@
 
             }
 
-
-            if (key.key === 'Enter') {}
-            return false
         }
 
         window.addEventListener('mousemove', handlePosition)
@@ -435,11 +382,9 @@
     </script>
 
     <div class="chat">
-        <div class="chat-entry">POW POW: Amazing!</div>
-        <div class="chat-entry">MC Hammer: You nailed it!</div>
-        <div class="chat-entry">SmashyPants: Your base are belong to us!</div>
 
-        <textarea rows="2">this is something</textarea>
+        <textarea rows="2"></textarea>
+        <div class='chat-help'>ESC to close</div>
     </div>
 </body>
 
