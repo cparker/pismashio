@@ -55,7 +55,13 @@ app.use(bodyParser.urlencoded({
 
 
 let getSmashID = (cookieHeader) => {
-    return (cookieHeader.split(';').find(x => x.indexOf(cookieName) != -1)).split('=')[1]
+    return (() => {
+        try {
+            return (cookieHeader.split(';').find(x => x.indexOf(cookieName) != -1)).split('=')[1]
+        } catch (e) {
+            return null
+        }
+    })()
 }
 
 
@@ -166,9 +172,13 @@ let moveSomeItems = (width, height, maxItemsToMove) => {
 
 
 io.on('connection', client => {
-    console.log('client', client.handshake.headers.cookie)
+    console.log('HEADERS', client.handshake.headers)
     const playerSmashID = getSmashID(client.handshake.headers.cookie)
-
+    
+    if (!playerSmashID) {
+      console.log('could not get a playerSmashID?')
+      return
+    }
 
     client.on('hitItem', handleHitItem(client, playerSmashID))
 
@@ -233,7 +243,7 @@ io.on('connection', client => {
             }
             return p
         })
-        
+
         client.broadcast.emit('playersUpdate', players)
         client.emit('playersUpdate', players)
     })
