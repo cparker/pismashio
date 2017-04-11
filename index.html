@@ -9,6 +9,7 @@
    add 8-bit background music
    add smash sound
    add double, triple, quadrupal smash effects
+   deploy to heroku
    improve chat display
    add bonus smash things, that wiggle to indicate bonus, and flash a +5 when hit
    let spacebar swing hammer
@@ -32,380 +33,422 @@
 
     <script src="/socket.io/socket.io.js"></script>
 
-    <script>
-        let playerId
-        let playerName
-        let ourHammerElement, ourScoreElement, ourNameElement
-        let enterCallback = () => false // noop
-        let escapeCallback = () => false
-        let typingTextMode = false
-        let level = 0
-        let smashedCount = 0
-        let totalSmashies = 5
-        let chatOpen = false
-        let nameOpen = false
-
-        const socket = io.connect(':5000')
-        const smashyWidthPx = 50
-        const smashDurationMs = 150
-
-
-        const images = [
-            "/images/pistachio-1.png",
-            "http://gnomemiracle.com/wp-content/uploads/2015/04/Door-Greeter-Whistling-Gnome-2.png",
-            "http://vignette4.wikia.nocookie.net/sugoiacademy/images/9/9a/Tumblr_static_8a4ufs1f04kk4848k4w0gww8w.png/revision/latest?cb=20151211215132",
-            "/images/sandwich.png",
-            "/images/chucks.png",
-            "/images/guitar.png",
-            "/images/donut.gif",
-            "/images/coke.png"
-        ]
-
-        const hammerImages = [
-            '/images/tackHammer.png',
-            '/images/carpenter.png',
-            '/images/small-sledge.png'
-        ]
-
-        let getHammerImageURL = (score) => {
-            if (score < 50) {
-                return hammerImages[0]
-            } else if (score < 100) {
-                return hammerImages[1]
-            } else {
-                return hammerImages[2]
-            }
-        }
-
-
-        // handler for making some pieces move around the board
-        socket.on('boardMoveItems', gameBoard => {
-            console.log('boardMoveItems')
-            gameBoard.boardPieces.forEach(piece => {
-                const pieceElement = document.querySelector(`#${piece.id}.smash-thing`)
-                pieceElement.style.top = `${piece.y}px`;
-                pieceElement.style.left = `${piece.x}px`;
-                pieceElement.style.transform = `rotate(${piece.rotate}deg)`
-            })
-        })
-
-        socket.on('playersUpdate', players => {
-            console.log('players', players)
-
-            const otherPlayers = players.filter(p => p.playerId != playerId)
-
-            otherPlayers.forEach(otherPlayer => {
-
-                // add another hammer image to the dom, IF its not there already
-                if (!document.querySelector(`#hammer-${otherPlayer.playerId}`)) {
-                    const newHammer = document.createElement('img')
-
-                    const hammerImageUrl = getHammerImageURL(otherPlayer.score)
-
-                    newHammer.src = hammerImageUrl
-                    newHammer.classList.add("hammer")
-                    newHammer.classList.add('other-player')
-                    newHammer.setAttribute('id', `hammer-${otherPlayer.playerId}`)
-
-                    const newScore = document.createElement('div')
-                    newScore.classList.add('score')
-                    newScore.innerHTML = `${otherPlayer.score}`
-                    newScore.setAttribute('id', `score-${otherPlayer.playerId}`)
-
-                    const newName = document.createElement('div')
-                    newName.classList.add('name-display')
-                    newName.innerHTML = `${otherPlayer.name || ''}`
-                    newName.setAttribute('id', `name-${otherPlayer.playerId}`)
-
-                    const body = document.querySelector('body')
-                    body.appendChild(newHammer)
-                    body.appendChild(newScore)
-                    body.appendChild(newName)
-                } else {
-                    console.log(`we already have a hammer for ${otherPlayer.playerId}`)
-                    const existingHammerElm = document.querySelector(`#hammer-${otherPlayer.playerId}`)
-                    existingHammerElm.src = getHammerImageURL(otherPlayer.score)
-
-                    const existingNameElm = document.querySelector(`#name-${otherPlayer.playerId}`)
-                    existingNameElm.innerHTML = otherPlayer.name || ''
-                }
-
-                document.querySelector(`#score-${otherPlayer.playerId}`).innerHTML = otherPlayer.score
-            })
-
-            // ME
-            const me = players.find(p => p.playerId === playerId)
-            document.querySelector(`#score-${me.playerId}`).innerHTML = me.score
-            document.querySelector(`#name-${me.playerId}`).innerHTML = me.name || ''
-            document.querySelector(`#hammer-${me.playerId}`).src = getHammerImageURL(me.score)
-        })
-
-        socket.on('playerPositionUpdate', data => {
-            const otherH = document.querySelector(`#hammer-${data.playerId}`)
-            otherH.style.top = `${data.y-140}px`
-            otherH.style.left = `${data.x-10}px`
-
-            const otherScore = document.querySelector(`#score-${data.playerId}`)
-            otherScore.style.top = `${data.y}px`
-            otherScore.style.left = `${data.x}px`
-
-            const otherName = document.querySelector(`#name-${data.playerId}`)
-            otherName.style.top = `${data.y}px`
-            otherName.style.left = `${data.x}px`
-        })
-
-        socket.on('connect', data => {
-            console.log('connected', data)
-            socket.emit('join', {
-                playerId: playerId
-            })
-        })
-
-        socket.on('registrationResponse', data => {
-            console.log('registrationResponse', data)
-            playerId = data.playerId
-            playerName = data.playerName
-            ourHammerElement = document.createElement('img')
-            const hammerImageURL = getHammerImageURL(data.score)
-            ourHammerElement.src = hammerImageURL
-            ourHammerElement.classList.add("hammer")
-            ourHammerElement.setAttribute('id', `hammer-${playerId}`)
-
-            ourScoreElement = document.createElement('div')
-            ourScoreElement.classList.add('score')
-            ourScoreElement.innerHTML = `${data.score}`
-            ourScoreElement.setAttribute('id', `score-${playerId}`)
-
-            ourNameElement = document.createElement('div')
-            ourNameElement.classList.add('name-display')
-            ourNameElement.setAttribute('id', `name-${playerId}`)
-
-            const body = document.querySelector('body')
-            body.appendChild(ourHammerElement)
-            body.appendChild(ourScoreElement)
-            body.appendChild(ourNameElement)
-        })
-
-        socket.on('gameBoard', handleBoardUpdate)
-
-        socket.on('playerSmash', handlePlayerSmash)
-
-
-        socket.on('playerChat', handlePlayerChat)
-
-
-        const smashImg = "https://www.clipartsgram.com/image/1251806326-pow-hi.png"
-
-        const bodyElm = document.querySelector('body')
-
-
-        function handleBoardUpdate(board) {
-            // first, clear out any pieces we may have already
-            Array.from(document.querySelectorAll('.smash-thing')).forEach(e => e.remove())
-            board.boardPieces.forEach(b => {
-                const newSmashy = document.createElement('img')
-                newSmashy.classList.add('smash-thing')
-                newSmashy.style.left = `${b.x}px`
-                newSmashy.style.top = `${b.y}px`
-                newSmashy.src = images[board.level]
-                newSmashy.setAttribute('id', `${b.id}`)
-
-                newSmashy.style.transform = `rotate(${b.rotate}deg)`
-
-                bodyElm.appendChild(newSmashy)
-            })
-
-        }
-
-        function handlePlayerSmash(playerId) {
-            console.log(`player ${playerId} is smashing`)
-            const otherH = document.querySelector(`#hammer-${playerId}`)
-            otherH.classList.add('smash')
-            setTimeout(() => {
-                otherH.classList.remove('smash')
-            }, smashDurationMs)
-        }
-
-        function handlePosition(p) {
-            ourHammerElement.style.top = `${p.y-140}px`
-            ourHammerElement.style.left = `${p.x-10}px`
-
-            ourScoreElement.style.top = `${p.y}px`
-            ourScoreElement.style.left = `${p.x}px`
-
-            ourNameElement.style.top = `${p.y}px`
-            ourNameElement.style.left = `${p.x}px`
-
-            socket.emit('playerPosition', {
-                playerId: playerId,
-                x: p.x,
-                y: p.y
-            })
-        }
-
-
-        function handlePlayerChat(chatMessage) {
-            // add a message        <div class="chat-entry">POW POW: Amazing!</div>
-            console.log('playerChat', chatMessage)
-            const newMessageElement = document.createElement('div')
-            newMessageElement.classList.add('chat-entry')
-            newMessageElement.innerHTML = `${chatMessage.name || 'anon'}: ${chatMessage.message}`
-            const chatInputElm = document.querySelector('.chat textarea')
-            document.querySelector('.chat').insertBefore(newMessageElement, chatInputElm)
-        }
-
-
-        function handleDown(p) {
-            p.stopPropagation()
-            p.preventDefault()
-            ourHammerElement.classList.add('smash')
-
-            setTimeout(() => {
-                ourHammerElement.classList.remove('smash')
-            }, smashDurationMs)
-
-            socket.emit('playerSmash', playerId)
-
-            let allSmashItems = Array.from(document.querySelectorAll('.smash-thing'))
-            allSmashItems.forEach(item => {
-                let itemRect = item.getBoundingClientRect()
-                if (p.x >= itemRect.left && p.x <= itemRect.right && p.y >= itemRect.top && p.y <= itemRect.bottom) {
-                    console.log('BAM')
-                    socket.emit('hitItem', item.getAttribute('id'))
-                    item.src = smashImg
-                    smashedCount += 1
-                    setTimeout(() => {
-                        bodyElm.removeChild(item)
-                    }, 2000)
-                }
-            })
-            return false
-        }
-
-        function handleUp() {
-            //nothing to do here
-            //ourHammerElement.classList.remove('smash')
-        }
-
-
-        function showName(key) {
-            let i = document.querySelector('#name')
-            // if the input is not visible, show the input and stop the event
-            if (i.style.display === 'none' || i.style.display === '') {
-                i.style.display = 'block'
-                key.stopPropagation()
-                key.preventDefault()
-                i.focus()
-            } else {
-                // the input is already visible and they are typing an n character
-            }
-        }
-
-        function showChat(key) {
-            let c = document.querySelector('.chat')
-            let chatInput = document.querySelector('.chat textarea')
-            if (!chatOpen) {
-                c.style.opacity = 0.7
-                chatOpen = true
-                key.stopPropagation()
-                key.preventDefault()
-                chatInput.focus()
-            }
-        }
-
-
-        function enterName() {
-            let i = document.querySelector('#name')
-            playerName = i.value
-            document.querySelector('.name-display').innerHTML = i.value
-            socket.emit('setPlayerName', i.value)
-            document.querySelector('#name').style.display = 'none'
-        }
-
-
-        function enterChat(keyEvent) {
-            // let's stop the enter event so it doesn't put a newline in the chat box
-            keyEvent.stopPropagation()
-            keyEvent.preventDefault()
-
-            let c = document.querySelector('.chat')
-            let chatInput = document.querySelector('.chat textarea')
-
-            chatInput.value && chatInput.value.length > 0 && socket.emit('playerChat', {
-                playerId: playerId,
-                message: chatInput.value
-            })
-
-            chatInput.value = ''
-        }
-
-
-        function closeChat(keyEvent) {
-            document.querySelector('.chat').style.opacity = 0.0
-            chatOpen = false
-        }
-
-
-        function handleKey(keyEvent) {
-            // if the user is typing their name, or typing a chat message, we don't want to handle keys
-            // EXCEPT ENTER
-
-            if (typingTextMode) {
-                if (keyEvent.key === 'Enter') {
-                    typingTextMode = false
-                    enterCallback(keyEvent)
-                    enterCallback = () => false
-                }
-
-                if (keyEvent.key === 'Escape') {
-                    typingTextMode = false
-                    escapeCallback(keyEvent)
-                    escapeCallback = () => false
-                }
-
-            } else {
-
-                switch (keyEvent.key) {
-                    case 'n':
-                        enterCallback = enterName
-                        showName(keyEvent)
-                        typingTextMode = true
-                        break
-
-                    case 'c':
-                        enterCallback = enterChat
-                        escapeCallback = closeChat
-                        showChat(keyEvent)
-                        typingTextMode = true
-                        break
-
-                    case 'Enter':
-                        enterCallback(keyEvent)
-                        break
-
-                    case 'Escape':
-                        escapeCallback(keyEvent)
-                        break
-
-                    default:
-                        break
-                }
-
-            }
-
-        }
-
-        window.addEventListener('mousemove', handlePosition)
-        window.addEventListener('mousedown', handleDown)
-        window.addEventListener('mouseup', handleUp)
-        window.addEventListener('keydown', handleKey)
-    </script>
-
     <div class="chat">
-
         <textarea rows="2"></textarea>
         <div class='chat-help'>ESC to close</div>
     </div>
+
+    <audio id="keysogg" src="sound/keys-theme.ogg"></audio>
+
+    <script>
+        function go() {
+            let playerId
+            let playerName
+            let ourHammerElement, ourScoreElement, ourNameElement
+            let enterCallback = () => false // noop
+            let escapeCallback = () => false
+            let typingTextMode = false
+            let level = 0
+            let smashedCount = 0
+            let totalSmashies = 5
+            let chatOpen = false
+            let nameOpen = false
+            let musicOn = false
+
+            const socket = io.connect(':5000')
+            const smashyWidthPx = 50
+            const smashDurationMs = 150
+
+
+            const images = [
+                "/images/pistachio-1.png",
+                "http://gnomemiracle.com/wp-content/uploads/2015/04/Door-Greeter-Whistling-Gnome-2.png",
+                "http://vignette4.wikia.nocookie.net/sugoiacademy/images/9/9a/Tumblr_static_8a4ufs1f04kk4848k4w0gww8w.png/revision/latest?cb=20151211215132",
+                "/images/sandwich.png",
+                "/images/chucks.png",
+                "/images/guitar.png",
+                "/images/donut.gif",
+                "/images/coke.png"
+            ]
+
+            const hammerImages = [
+                '/images/tackHammer.png',
+                '/images/carpenter.png',
+                '/images/small-sledge.png'
+            ]
+
+            // start the music!
+            document.querySelector('#keysogg').play()
+            musicOn = true
+
+            let getHammerImageURL = (score) => {
+                if (score < 50) {
+                    return hammerImages[0]
+                } else if (score < 100) {
+                    return hammerImages[1]
+                } else {
+                    return hammerImages[2]
+                }
+            }
+
+
+            // handler for making some pieces move around the board
+            socket.on('boardMoveItems', gameBoard => {
+                console.log('boardMoveItems')
+                gameBoard.boardPieces.forEach(piece => {
+                    const pieceElement = document.querySelector(`#${piece.id}.smash-thing`)
+                    pieceElement.style.top = `${piece.y}px`;
+                    pieceElement.style.left = `${piece.x}px`;
+                    pieceElement.style.transform = `rotate(${piece.rotate}deg)`
+                })
+            })
+
+            socket.on('playersUpdate', players => {
+                console.log('players', players)
+
+                const otherPlayers = players.filter(p => p.playerId != playerId)
+
+                otherPlayers.forEach(otherPlayer => {
+
+                    // add another hammer image to the dom, IF its not there already
+                    if (!document.querySelector(`#hammer-${otherPlayer.playerId}`)) {
+                        const newHammer = document.createElement('img')
+
+                        const hammerImageUrl = getHammerImageURL(otherPlayer.score)
+
+                        newHammer.src = hammerImageUrl
+                        newHammer.classList.add("hammer")
+                        newHammer.classList.add('other-player')
+                        newHammer.setAttribute('id', `hammer-${otherPlayer.playerId}`)
+
+                        const newScore = document.createElement('div')
+                        newScore.classList.add('score')
+                        newScore.innerHTML = `${otherPlayer.score}`
+                        newScore.setAttribute('id', `score-${otherPlayer.playerId}`)
+
+                        const newName = document.createElement('div')
+                        newName.classList.add('name-display')
+                        newName.innerHTML = `${otherPlayer.name || ''}`
+                        newName.setAttribute('id', `name-${otherPlayer.playerId}`)
+
+                        const body = document.querySelector('body')
+                        body.appendChild(newHammer)
+                        body.appendChild(newScore)
+                        body.appendChild(newName)
+                    } else {
+                        console.log(`we already have a hammer for ${otherPlayer.playerId}`)
+                        const existingHammerElm = document.querySelector(`#hammer-${otherPlayer.playerId}`)
+                        existingHammerElm.src = getHammerImageURL(otherPlayer.score)
+
+                        const existingNameElm = document.querySelector(`#name-${otherPlayer.playerId}`)
+                        existingNameElm.innerHTML = otherPlayer.name || ''
+                    }
+
+                    document.querySelector(`#score-${otherPlayer.playerId}`).innerHTML = otherPlayer.score
+                })
+
+                // ME
+                const me = players.find(p => p.playerId === playerId)
+                document.querySelector(`#score-${me.playerId}`).innerHTML = me.score
+                document.querySelector(`#name-${me.playerId}`).innerHTML = me.name || ''
+                document.querySelector(`#hammer-${me.playerId}`).src = getHammerImageURL(me.score)
+            })
+
+            socket.on('playerPositionUpdate', data => {
+                const otherH = document.querySelector(`#hammer-${data.playerId}`)
+                otherH.style.top = `${data.y-140}px`
+                otherH.style.left = `${data.x-10}px`
+
+                const otherScore = document.querySelector(`#score-${data.playerId}`)
+                otherScore.style.top = `${data.y}px`
+                otherScore.style.left = `${data.x}px`
+
+                const otherName = document.querySelector(`#name-${data.playerId}`)
+                otherName.style.top = `${data.y}px`
+                otherName.style.left = `${data.x}px`
+            })
+
+            socket.on('connect', data => {
+                console.log('connected', data)
+                socket.emit('join', {
+                    playerId: playerId
+                })
+            })
+
+            socket.on('registrationResponse', data => {
+                console.log('registrationResponse', data)
+                playerId = data.playerId
+                playerName = data.playerName
+                ourHammerElement = document.createElement('img')
+                const hammerImageURL = getHammerImageURL(data.score)
+                ourHammerElement.src = hammerImageURL
+                ourHammerElement.classList.add("hammer")
+                ourHammerElement.setAttribute('id', `hammer-${playerId}`)
+
+                ourScoreElement = document.createElement('div')
+                ourScoreElement.classList.add('score')
+                ourScoreElement.innerHTML = `${data.score}`
+                ourScoreElement.setAttribute('id', `score-${playerId}`)
+
+                ourNameElement = document.createElement('div')
+                ourNameElement.classList.add('name-display')
+                ourNameElement.setAttribute('id', `name-${playerId}`)
+
+                const body = document.querySelector('body')
+                body.appendChild(ourHammerElement)
+                body.appendChild(ourScoreElement)
+                body.appendChild(ourNameElement)
+            })
+
+            socket.on('gameBoard', handleBoardUpdate)
+
+            socket.on('playerSmash', handlePlayerSmash)
+
+
+            socket.on('playerChat', handlePlayerChat)
+
+
+            const smashImg = "https://www.clipartsgram.com/image/1251806326-pow-hi.png"
+
+            const bodyElm = document.querySelector('body')
+
+
+            function handleBoardUpdate(board) {
+                // first, clear out any pieces we may have already
+                Array.from(document.querySelectorAll('.smash-thing')).forEach(e => e.remove())
+                board.boardPieces.forEach(b => {
+                    const newSmashy = document.createElement('img')
+                    newSmashy.classList.add('smash-thing')
+                    newSmashy.style.left = `${b.x}px`
+                    newSmashy.style.top = `${b.y}px`
+                    newSmashy.src = images[board.level]
+                    newSmashy.setAttribute('id', `${b.id}`)
+
+                    newSmashy.style.transform = `rotate(${b.rotate}deg)`
+
+                    bodyElm.appendChild(newSmashy)
+                })
+
+            }
+
+            function handlePlayerSmash(playerId) {
+                console.log(`player ${playerId} is smashing`)
+                const otherH = document.querySelector(`#hammer-${playerId}`)
+                otherH.classList.add('smash')
+                setTimeout(() => {
+                    otherH.classList.remove('smash')
+                }, smashDurationMs)
+            }
+
+            function handlePosition(p) {
+                ourHammerElement.style.top = `${p.y-140}px`
+                ourHammerElement.style.left = `${p.x-10}px`
+
+                ourScoreElement.style.top = `${p.y}px`
+                ourScoreElement.style.left = `${p.x}px`
+
+                ourNameElement.style.top = `${p.y}px`
+                ourNameElement.style.left = `${p.x}px`
+
+                socket.emit('playerPosition', {
+                    playerId: playerId,
+                    x: p.x,
+                    y: p.y
+                })
+            }
+
+
+            function handlePlayerChat(chatMessage) {
+                // add a message        <div class="chat-entry">POW POW: Amazing!</div>
+                console.log('playerChat', chatMessage)
+                const newMessageElement = document.createElement('div')
+                newMessageElement.classList.add('chat-entry')
+                newMessageElement.innerHTML = `${chatMessage.name || 'anon'}: ${chatMessage.message}`
+                const chatInputElm = document.querySelector('.chat textarea')
+                document.querySelector('.chat').insertBefore(newMessageElement, chatInputElm)
+            }
+
+
+            function handleDown(p) {
+                if (p.stopPropagation) {
+                    p.stopPropagation()
+                }
+
+                if (p.preventDefault) {
+                    p.preventDefault()
+                }
+                ourHammerElement.classList.add('smash')
+
+                setTimeout(() => {
+                    ourHammerElement.classList.remove('smash')
+                }, smashDurationMs)
+
+                socket.emit('playerSmash', playerId)
+
+                let allSmashItems = Array.from(document.querySelectorAll('.smash-thing'))
+                allSmashItems.forEach(item => {
+                    let itemRect = item.getBoundingClientRect()
+                    if (p.x >= itemRect.left && p.x <= itemRect.right && p.y >= itemRect.top && p.y <= itemRect.bottom) {
+                        console.log('BAM')
+                        socket.emit('hitItem', item.getAttribute('id'))
+                        item.src = smashImg
+                        smashedCount += 1
+                        setTimeout(() => {
+                            bodyElm.removeChild(item)
+                        }, 2000)
+                    }
+                })
+                return false
+            }
+
+            function handleUp() {
+                //nothing to do here
+                //ourHammerElement.classList.remove('smash')
+            }
+
+
+            function showName(key) {
+                let i = document.querySelector('#name')
+                // if the input is not visible, show the input and stop the event
+                if (i.style.display === 'none' || i.style.display === '') {
+                    i.style.display = 'block'
+                    key.stopPropagation()
+                    key.preventDefault()
+                    i.focus()
+                } else {
+                    // the input is already visible and they are typing an n character
+                }
+            }
+
+            function showChat(key) {
+                let c = document.querySelector('.chat')
+                let chatInput = document.querySelector('.chat textarea')
+                if (!chatOpen) {
+                    c.style.opacity = 0.7
+                    chatOpen = true
+                    key.stopPropagation()
+                    key.preventDefault()
+                    chatInput.focus()
+                }
+            }
+
+
+            function enterName() {
+                let i = document.querySelector('#name')
+                playerName = i.value
+                document.querySelector('.name-display').innerHTML = i.value
+                socket.emit('setPlayerName', i.value)
+                document.querySelector('#name').style.display = 'none'
+            }
+
+
+            function enterChat(keyEvent) {
+                // let's stop the enter event so it doesn't put a newline in the chat box
+                keyEvent.stopPropagation()
+                keyEvent.preventDefault()
+
+                let c = document.querySelector('.chat')
+                let chatInput = document.querySelector('.chat textarea')
+
+                chatInput.value && chatInput.value.length > 0 && socket.emit('playerChat', {
+                    playerId: playerId,
+                    message: chatInput.value
+                })
+
+                chatInput.value = ''
+            }
+
+
+            function closeChat(keyEvent) {
+                document.querySelector('.chat').style.opacity = 0.0
+                chatOpen = false
+            }
+
+
+            /*
+            music credit 
+            https://soundcloud.com/eox-studios/8bit_keys_theme-remix
+            */
+            function toggleMusic() {
+                const audio = document.querySelector('#keysogg')
+                if (musicOn) {
+                    audio.pause()
+                    musicOn = false
+                } else {
+                    audio.currentTime = 0
+                    audio.play()
+                    musicOn = true
+                }
+            }
+
+
+            function handleKey(keyEvent) {
+                console.log('key', keyEvent)
+                // if the user is typing their name, or typing a chat message, we don't want to handle keys
+                // EXCEPT ENTER
+
+                if (typingTextMode) {
+                    if (keyEvent.key === 'Enter') {
+                        typingTextMode = false
+                        enterCallback(keyEvent)
+                        enterCallback = () => false
+                    }
+
+                    if (keyEvent.key === 'Escape') {
+                        typingTextMode = false
+                        escapeCallback(keyEvent)
+                        escapeCallback = () => false
+                    }
+
+                } else {
+
+                    switch (keyEvent.key) {
+                        case 'n':
+                            enterCallback = enterName
+                            showName(keyEvent)
+                            typingTextMode = true
+                            break
+
+                        case 'c':
+                            enterCallback = enterChat
+                            escapeCallback = closeChat
+                            showChat(keyEvent)
+                            typingTextMode = true
+                            break
+
+                        case 'Enter':
+                            enterCallback(keyEvent)
+                            break
+
+                        case 'Escape':
+                            escapeCallback(keyEvent)
+                            break
+
+                        case ' ':
+                            // handleDown()
+                            break
+
+                        case 'm':
+                            toggleMusic()
+                            break
+
+                        default:
+                            break
+                    }
+
+                }
+
+            }
+
+            window.addEventListener('mousemove', handlePosition)
+            window.addEventListener('mousedown', handleDown)
+            window.addEventListener('mouseup', handleUp)
+            window.addEventListener('keydown', handleKey)
+        }
+
+        window.addEventListener('onload', go())
+    </script>
+
 </body>
 
 </html>
