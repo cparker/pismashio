@@ -31,6 +31,7 @@
 
     <input id="name" type="text" placeholder="name" />
 
+    <script src="/underscore/underscore-min.js"></script>
     <script src="/socket.io/socket.io.js"></script>
 
     <div class="chat">
@@ -249,6 +250,17 @@
                 }, smashDurationMs)
             }
 
+            function broadcastPosition(x, y) {
+                console.log('broadcasting my position', x,y)
+                socket.emit('playerPosition', {
+                    playerId: playerId,
+                    x: x,
+                    y: y
+                })
+            }
+            
+            let throttledBroadcastPosition = _.throttle(broadcastPosition, 250)
+
             function handlePosition(p) {
                 ourHammerElement.style.top = `${p.y-140}px`
                 ourHammerElement.style.left = `${p.x-10}px`
@@ -258,12 +270,8 @@
 
                 ourNameElement.style.top = `${p.y}px`
                 ourNameElement.style.left = `${p.x}px`
-
-                socket.emit('playerPosition', {
-                    playerId: playerId,
-                    x: p.x,
-                    y: p.y
-                })
+                
+                throttledBroadcastPosition(p.x, p.y)
             }
 
 

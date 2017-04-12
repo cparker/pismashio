@@ -97,7 +97,7 @@ let generateGameBoard = (width, height, targetMax) => {
 }
 
 
-// interesting concurrency issues here
+// interesting concurrency issues here ?
 let handleHitItem = (client, playerSmashID) => {
     return (itemId) => {
         console.log(`player ${playerSmashID} hit item ${itemId}`)
