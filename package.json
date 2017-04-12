@@ -1,15 +1,25 @@
 {
-  "name": "pismashio",
-  "version": "0.1.0",
-  "description": "Smash all the things!  Simple little game built with pure javascript ES6",
-  "main": "server.js",
-  "scripts": {},
-  "author": "cp@cjparker.us",
-  "license": "MIT",
-  "dependencies": {
-    "body-parser": "^1.17.1",
-    "cookie-parser": "^1.4.3",
-    "express": "^4.15.2",
-    "socket.io": "^1.7.3"
-  }
+    "name": "pismashio",
+    "version": "0.1.0",
+    "description": "Smash all the things!  Simple little game built with pure javascript ES6, HTML5, CSS3",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "engines": {
+        "node": "7.5"
+    },
+    "author": "cp@cjparker.us",
+    "license": "MIT",
+    "dependencies": {
+        "body-parser": "^1.17.1",
+        "cookie-parser": "^1.4.3",
+        "express": "^4.15.2",
+        "socket.io": "^1.7.3"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cparker/pismashio"
+    },
+    "homepage": "https://github.com/cparker/pismashio#readme"
 }
