@@ -156,6 +156,7 @@ let moveSomeItems = (width, height, maxItemsToMove) => {
     const h = height || defaultHeight
     let piecesToMove = Math.min(Math.ceil((Math.random() * 1000)) % (maxItemsToMove || 5), gameBoard.boardPieces.length)
 
+    let movedPieces = []
     for (let i = 0; i < piecesToMove; i++) {
         try {
             let x = Math.ceil((Math.random() * 1000)) % w
@@ -164,10 +165,13 @@ let moveSomeItems = (width, height, maxItemsToMove) => {
             gameBoard.boardPieces[i].x = x
             gameBoard.boardPieces[i].y = y
             gameBoard.boardPieces[i].rotate = rotate
+            movedPieces.push(gameBoard.boardPieces[i])
         } catch (e) {
             console.log('caught exception moving pieces... somebody prolly smashed one', e)
         }
     }
+    
+    return movedPieces
 }
 
 
@@ -277,11 +281,10 @@ let setMoveInterval = (period) => {
 
     moveInterval = setInterval(() => {
         if (gameBoard.level > 0) {
-            console.log('movingItems')
-            moveSomeItems(undefined, undefined, moveItemCountMax)
+            const movedPieces = moveSomeItems(undefined, undefined, moveItemCountMax)
             playerConnections.forEach(con => {
-                con.client.broadcast.emit('boardMoveItems', gameBoard)
-                con.client.emit('boardMoveItems', gameBoard)
+                con.client.broadcast.emit('boardMoveItems', movedPieces)
+                con.client.emit('boardMoveItems', movedPieces)
             })
         }
     }, period)

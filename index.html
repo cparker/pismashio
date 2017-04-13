@@ -103,9 +103,8 @@
 
 
             // handler for making some pieces move around the board
-            socket.on('boardMoveItems', gameBoard => {
-                console.log('boardMoveItems')
-                gameBoard.boardPieces.forEach(piece => {
+            socket.on('boardMoveItems', movedPieces => {
+                movedPieces.forEach(piece => {
                     const pieceElement = document.querySelector(`#${piece.id}.smash-thing`)
                     pieceElement.style.top = `${piece.y}px`;
                     pieceElement.style.left = `${piece.x}px`;
@@ -242,7 +241,6 @@
             }
 
             function handlePlayerSmash(playerId) {
-                console.log(`player ${playerId} is smashing`)
                 const otherH = document.querySelector(`#hammer-${playerId}`)
                 otherH.classList.add('smash')
                 setTimeout(() => {
@@ -251,7 +249,6 @@
             }
 
             function broadcastPosition(x, y) {
-                console.log('broadcasting my position', x,y)
                 socket.emit('playerPosition', {
                     playerId: playerId,
                     x: x,
@@ -277,7 +274,6 @@
 
             function handlePlayerChat(chatMessage) {
                 // add a message        <div class="chat-entry">POW POW: Amazing!</div>
-                console.log('playerChat', chatMessage)
                 const newMessageElement = document.createElement('div')
                 newMessageElement.classList.add('chat-entry')
                 newMessageElement.innerHTML = `${chatMessage.name || 'anon'}: ${chatMessage.message}`
@@ -440,7 +436,6 @@
 
 
             function handleKey(keyEvent) {
-                console.log('key', keyEvent)
                 // if the user is typing their name, or typing a chat message, we don't want to handle keys
                 // EXCEPT ENTER
 
