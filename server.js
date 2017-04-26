@@ -36,6 +36,7 @@ let gameBoard = {
 app.use(cookieParser())
 app.use(express.static(__dirname + '/node_modules'))
 app.use(express.static(__dirname + '/images'))
+app.use(express.static(__dirname + '/sound'))
 
 // we need this explicit route so we can deal with cookies here
 app.get('/', function(req, res, next) {
