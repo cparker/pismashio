@@ -12,8 +12,6 @@
 
 
 <body>
-  test change
-
     <input id="name" type="text" placeholder="name" />
 
     <script src="/underscore/underscore-min.js"></script>
@@ -52,6 +50,7 @@
             const swingSound = document.querySelector('#swing')
             const smashSound = document.querySelector('#smashsound')
             const doubleSmashSound = document.querySelector('#doubleSmashSound')
+            const tripleSmashSound = document.querySelector('#doubleSmashSound') // TODO record a triple smash sound
 
 
             const images = [
@@ -267,26 +266,32 @@
             }
 
 
-            function doubleSmash(x, y, delay) {
+            function multiSmash(x, y, text, sound, delay) {
                 setTimeout(() => {
-                    const newDoubleSmashElement = document.createElement('h2')
-                    newDoubleSmashElement.classList.add('double-smash')
-                    doubleSmashSound.currentTime = 0
-                    doubleSmashSound.play()
-                    newDoubleSmashElement.innerHTML = 'Double Smash!'
-                    newDoubleSmashElement.id = `${Math.random()}`
-                    newDoubleSmashElement.style.top = y
-                    newDoubleSmashElement.style.left = x
-                    newDoubleSmashElement.style.opacity = 1.0
-                    document.body.appendChild(newDoubleSmashElement)
-                    newDoubleSmashElement.style.animation = 'rock 300ms linear 0s 10'
+                    const newMultiSmashElement = document.createElement('h2')
+                    newMultiSmashElement.classList.add('multi-smash')
+                    sound.currentTime = 0
+                    sound.play()
+                    newMultiSmashElement.innerHTML = text
+                    newMultiSmashElement.id = `${Math.random()}`
+                    newMultiSmashElement.style.top = y
+                    newMultiSmashElement.style.left = x
+                    newMultiSmashElement.style.opacity = 1.0
+                    document.body.appendChild(newMultiSmashElement)
+                    newMultiSmashElement.style.animation = 'rock 300ms linear 0s 10'
 
                     setTimeout(() => {
-                        document.body.removeChild(newDoubleSmashElement)
+                        document.body.removeChild(newMultiSmashElement)
                     }, 3000)
                 }, delay || 300)
             }
 
+
+            function doubleSmash(x, y, delay) {
+                multiSmash(x,y,'Double Smash!!', doubleSmashSound, delay)
+            }
+
+            // CHALLENGE!! Add a tripleSmash method below, use the doubleSmash method above as a hint
 
             function handleDown(p) {
                 if (p.stopPropagation) {
@@ -315,22 +320,26 @@
                 allSmashItems.forEach(item => {
                     let itemRect = item.getBoundingClientRect()
                     if (p.x >= itemRect.left && p.x <= itemRect.right && p.y >= itemRect.top && p.y <= itemRect.bottom) {
-                        currentSmashCount++
+                        // check to see if we already smashed it
+                        if (item.src != smashImg) {
+                            currentSmashCount++
 
-                        smashSound.currentTime = 0
-                        smashSound.play()
+                            smashSound.currentTime = 0
+                            smashSound.play()
 
-                        socket.emit('hitItem', item.getAttribute('id'))
-                        item.src = smashImg
-                        smashedCount += 1
-                        setTimeout(() => {
-                            bodyElm.removeChild(item)
-                        }, 2000)
+                            socket.emit('hitItem', item.getAttribute('id'))
+                            item.src = smashImg
+                            smashedCount += 1
+                            setTimeout(() => {
+                                bodyElm.removeChild(item)
+                            }, 2000)
+                        }
                     }
                 })
                 if (currentSmashCount == 2) {
-                    doubleSmash(p.x, p.y, 300)
+                    doubleSmash(p.x, p.y)
                 }
+                // CHALLENGE!! Add an if statement here that calls a tripleSmash method
                 return false
             }
 
