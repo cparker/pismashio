@@ -298,6 +298,6 @@ setMoveInterval(moveIntervalPeriodMs)
 server.listen(port, '0.0.0.0', () => {
     console.log(`listening on ${port}`)
     if (process.env.C9_HOSTNAME) {
-        console.log(`\nview your app at http://${process.env.C9_HOSTNAME}:${port}`)
+        console.log(`\nview your app at https://${process.env.C9_HOSTNAME}:${port}`)
     }
 })
