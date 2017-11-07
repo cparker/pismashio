@@ -317,17 +317,19 @@
                 allSmashItems.forEach(item => {
                     let itemRect = item.getBoundingClientRect()
                     if (p.x >= itemRect.left && p.x <= itemRect.right && p.y >= itemRect.top && p.y <= itemRect.bottom) {
-                        currentSmashCount++
+                        if (item.src != smashImg) {
+                            item.src = smashImg
+                            currentSmashCount++
 
-                        smashSound.currentTime = 0
-                        smashSound.play()
+                            smashSound.currentTime = 0
+                            smashSound.play()
 
-                        socket.emit('hitItem', item.getAttribute('id'))
-                        item.src = smashImg
-                        smashedCount += 1
-                        setTimeout(() => {
-                            bodyElm.removeChild(item)
-                        }, 2000)
+                            socket.emit('hitItem', item.getAttribute('id'))
+                            smashedCount += 1
+                            setTimeout(() => {
+                                bodyElm.removeChild(item)
+                            }, 2000)
+                        }
                     }
                 })
                 if (currentSmashCount == 2) {
