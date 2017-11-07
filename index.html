@@ -12,7 +12,7 @@
 
 
 <body>
-  test change
+    test change
 
     <input id="name" type="text" placeholder="name" />
 
@@ -131,7 +131,8 @@
                         body.appendChild(newName)
                     } else {
                         console.log(`we already have a hammer for ${otherPlayer.playerId}`)
-                        const existingHammerElm = document.querySelector(`#hammer-${otherPlayer.playerId}`)
+                        const existingHammerElm = document.querySelector(
+                            `#hammer-${otherPlayer.playerId}`)
                         existingHammerElm.src = getHammerImageURL(otherPlayer.score)
 
                         const existingNameElm = document.querySelector(`#name-${otherPlayer.playerId}`)
@@ -240,7 +241,7 @@
                     y: y
                 })
             }
-            
+
             let throttledBroadcastPosition = _.throttle(broadcastPosition, 250)
 
             function handlePosition(p) {
@@ -252,7 +253,7 @@
 
                 ourNameElement.style.top = `${p.y}px`
                 ourNameElement.style.left = `${p.x}px`
-                
+
                 throttledBroadcastPosition(p.x, p.y)
             }
 
@@ -288,13 +289,13 @@
             }
 
 
-            function handleDown(p) {
-                if (p.stopPropagation) {
-                    p.stopPropagation()
+            function handleDown(smashPoint) {
+                if (smashPoint.stopPropagation) {
+                    smashPoint.stopPropagation()
                 }
 
-                if (p.preventDefault) {
-                    p.preventDefault()
+                if (smashPoint.preventDefault) {
+                    smashPoint.preventDefault()
                 }
                 ourHammerElement.classList.add('smash')
 
@@ -314,7 +315,23 @@
                 let currentSmashCount = 0
                 allSmashItems.forEach(item => {
                     let itemRect = item.getBoundingClientRect()
-                    if (p.x >= itemRect.left && p.x <= itemRect.right && p.y >= itemRect.top && p.y <= itemRect.bottom) {
+
+                    // CHALLENGE!! How do we know if we smashed or missed?
+                    // 
+                    // smashPoint.x and smashPoint.y are the coordinates of where the hammer strikes
+                    //
+                    // itemRect is a rectangle:
+                    //    itemRect.left is the x coordinate of the LEFT edge
+                    //    itemRect.right is the x coordinate of the RIGHT edge
+                    //    itemRect.top is the y coordinate of the TOP edge
+                    //    itemRect.bottom is the y coordinate of the BOTTOM edge
+                    //
+                    // HINT: Write an if statement to test if the smashPoint x and y are INSIDE the itemRect 
+                    // it will look something like:
+                    // if (smashPoint.x > itemRect.left ...)
+
+                    // REPLACE the line below with the correct if statement
+                    if (REPLACE_WITH_CORRECT_ANSWER) {
                         currentSmashCount++
 
                         smashSound.currentTime = 0
@@ -329,7 +346,7 @@
                     }
                 })
                 if (currentSmashCount == 2) {
-                    doubleSmash(p.x, p.y, 300)
+                    doubleSmash(smashPoint.x, smashPoint.y, 300)
                 }
                 return false
             }
