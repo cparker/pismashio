@@ -1,7 +1,7 @@
 'use strict'
 
 const express = require('express')
-const port = process.env.PORT || 5000
+const port = process.env.PORT || process.env.C9_PORT || 5000
 const app = express()
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
@@ -297,4 +297,7 @@ setMoveInterval(moveIntervalPeriodMs)
 
 server.listen(port, '0.0.0.0', () => {
     console.log(`listening on ${port}`)
+    if (process.env.C9_HOSTNAME) {
+        console.log(`\nview your app at http://${process.env.C9_HOSTNAME}:${port}`)
+    }
 })
