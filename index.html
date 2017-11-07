@@ -89,10 +89,13 @@
             // handler for making some pieces move around the board
             socket.on('boardMoveItems', movedPieces => {
                 movedPieces.forEach(piece => {
-                    const pieceElement = document.querySelector(`#${piece.id}.smash-thing`)
-                    pieceElement.style.top = `${piece.y}px`;
-                    pieceElement.style.left = `${piece.x}px`;
-                    pieceElement.style.transform = `rotate(${piece.rotate}deg)`
+                    let moveTimeout = Math.ceil(Math.random() * 2000)
+                    setTimeout(() => {
+                        const pieceElement = document.querySelector(`#${piece.id}.smash-thing`)
+                        pieceElement.style.top = `${piece.y}px`;
+                        pieceElement.style.left = `${piece.x}px`;
+                        pieceElement.style.transform = `rotate(${piece.rotate}deg)`
+                    }, moveTimeout)
                 })
             })
 
@@ -288,11 +291,11 @@
             }
 
             function doubleSmash(x, y, delay) {
-                multiSmash(x,y,'Double Smash!!', doubleSmashSound, delay)
+                multiSmash(x, y, 'Double Smash!!', doubleSmashSound, delay)
             }
 
             function tripleSmash(x, y, delay) {
-                multiSmash(x,y,'-=== Triple SMASH!! ===-', tripleSmashSound, delay)
+                multiSmash(x, y, '-=== Triple SMASH!! ===-', tripleSmashSound, delay)
             }
 
             // CHALLENGE!! Add a tripleSmash method below, use the doubleSmash method above as a hint
