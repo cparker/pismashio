@@ -88,7 +88,7 @@
                 } else if (score < 175) {
                     return hammerImages[3]
                 } else {
-                    return hammerImahges[4]
+                    return hammerImages[4]
                 }
             }
 
@@ -158,17 +158,21 @@
             })
 
             socket.on('playerPositionUpdate', data => {
-                const otherH = document.querySelector(`#hammer-${data.playerId}`)
-                otherH.style.top = `${data.y-140}px`
-                otherH.style.left = `${data.x-10}px`
+                try {
+                    const otherH = document.querySelector(`#hammer-${data.playerId}`)
+                    otherH.style.top = `${data.y-140}px`
+                    otherH.style.left = `${data.x-10}px`
 
-                const otherScore = document.querySelector(`#score-${data.playerId}`)
-                otherScore.style.top = `${data.y}px`
-                otherScore.style.left = `${data.x}px`
+                    const otherScore = document.querySelector(`#score-${data.playerId}`)
+                    otherScore.style.top = `${data.y}px`
+                    otherScore.style.left = `${data.x}px`
 
-                const otherName = document.querySelector(`#name-${data.playerId}`)
-                otherName.style.top = `${data.y}px`
-                otherName.style.left = `${data.x}px`
+                    const otherName = document.querySelector(`#name-${data.playerId}`)
+                    otherName.style.top = `${data.y}px`
+                    otherName.style.left = `${data.x}px`
+                } catch (err) {
+                    console.log('ignoring exception', err)
+                }
             })
 
             socket.on('connect', data => {
@@ -220,6 +224,7 @@
                 // first, clear out any pieces we may have already
                 Array.from(document.querySelectorAll('.smash-thing')).forEach(e => e.remove())
                 board.boardPieces.forEach(b => {
+                    try {
                     const newSmashy = document.createElement('img')
                     newSmashy.classList.add('smash-thing')
                     newSmashy.style.left = `${b.x}px`
@@ -230,6 +235,9 @@
                     newSmashy.style.transform = `rotate(${b.rotate}deg)`
 
                     bodyElm.appendChild(newSmashy)
+                    } catch (err) {
+                        console.log('ignoring exception', err)
+                    }
                 })
 
             }
@@ -253,16 +261,20 @@
             let throttledBroadcastPosition = _.throttle(broadcastPosition, 250)
 
             function handlePosition(p) {
-                ourHammerElement.style.top = `${p.y-140}px`
-                ourHammerElement.style.left = `${p.x-10}px`
+                try {
+                    ourHammerElement.style.top = `${p.y-140}px`
+                    ourHammerElement.style.left = `${p.x-10}px`
 
-                ourScoreElement.style.top = `${p.y}px`
-                ourScoreElement.style.left = `${p.x}px`
+                    ourScoreElement.style.top = `${p.y}px`
+                    ourScoreElement.style.left = `${p.x}px`
 
-                ourNameElement.style.top = `${p.y}px`
-                ourNameElement.style.left = `${p.x}px`
-                
-                throttledBroadcastPosition(p.x, p.y)
+                    ourNameElement.style.top = `${p.y}px`
+                    ourNameElement.style.left = `${p.x}px`
+                    
+                    throttledBroadcastPosition(p.x, p.y)
+                } catch (err) {
+                    console.log('ignoring exception', err)
+                }
             }
 
 
