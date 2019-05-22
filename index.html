@@ -67,7 +67,8 @@
             const hammerImages = [
                 '/images/tackHammer.png',
                 '/images/carpenter.png',
-                '/images/small-sledge.png'
+                '/images/small-sledge.png',
+                '/images/thor.png'
             ]
 
             // start the music!
@@ -80,8 +81,10 @@
                     return hammerImages[0]
                 } else if (score < 100) {
                     return hammerImages[1]
-                } else {
+                } else if (score < 150) {
                     return hammerImages[2]
+                } else {
+                    return hammerImages[3]
                 }
             }
 
