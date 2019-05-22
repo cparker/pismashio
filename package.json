@@ -7,7 +7,7 @@
     "start": "node server.js"
   },
   "engines": {
-    "node": "7.5"
+    "node": "7"
   },
   "author": "cp@cjparker.us",
   "license": "MIT",

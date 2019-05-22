@@ -62,7 +62,8 @@
                 "/images/guitar.png",
                 "/images/donut.gif",
                 "/images/coke.png",
-                "/images/nail.png"
+                "/images/nail.png",
+                "/images/roach.png"
             ]
 
             const hammerImages = [
@@ -70,7 +71,8 @@
                 '/images/carpenter.png',
                 '/images/small-sledge.png',
                 '/images/thor.png',
-                '/images/flaming.gif'
+                '/images/sword.png',
+                '/images/lightsaber.png'
             ]
 
             // start the music!
@@ -87,8 +89,10 @@
                     return hammerImages[2]
                 } else if (score < 175) {
                     return hammerImages[3]
-                } else {
+                } else if (score < 250) {
                     return hammerImages[4]
+                } else {
+                    return hammerImages[5]
                 }
             }
 
@@ -215,7 +219,7 @@
             socket.on('playerChat', handlePlayerChat)
 
 
-            const smashImg = "images/pow.png"
+            const smashImg = "images/bang.png"
 
             const bodyElm = document.querySelector('body')
 
@@ -338,6 +342,7 @@
                     if (p.x >= itemRect.left && p.x <= itemRect.right && p.y >= itemRect.top && p.y <= itemRect.bottom) {
                         if (item.src != smashImg) {
                             item.src = smashImg
+                            item.style['max-width'] = '140px'
                             currentSmashCount++
 
                             smashSound.currentTime = 0
